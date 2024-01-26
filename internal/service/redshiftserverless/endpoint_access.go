@@ -111,6 +111,12 @@ func ResourceEndpointAccess() *schema.Resource {
 				ForceNew:     true,
 				ValidateFunc: validation.StringLenBetween(1, 30),
 			},
+			"owner_account": {
+				Type: 			schema.TypeString,
+				Required:		false,
+				ForceNew:     	true,
+				ValidateFunc: 	verify.ValidAccountID,
+			},
 		},
 	}
 }
@@ -130,6 +136,10 @@ func resourceEndpointAccessCreate(ctx context.Context, d *schema.ResourceData, m
 
 	if v, ok := d.GetOk("subnet_ids"); ok && v.(*schema.Set).Len() > 0 {
 		input.SubnetIds = flex.ExpandStringSet(v.(*schema.Set))
+	}
+
+	if v, ok := d.GetOk("owner_account"); ok {
+		input.OwnerAccount = aws.String(v.(string))
 	}
 
 	out, err := conn.CreateEndpointAccessWithContext(ctx, &input)
@@ -167,6 +177,7 @@ func resourceEndpointAccessRead(ctx context.Context, d *schema.ResourceData, met
 	d.Set("arn", out.EndpointArn)
 	d.Set("endpoint_name", out.EndpointName)
 	d.Set("workgroup_name", out.WorkgroupName)
+	d.Set("owner_account",out.ResourceOwner)
 	d.Set("subnet_ids", flex.FlattenStringSet(out.SubnetIds))
 
 	result := make([]*string, 0, len(out.VpcSecurityGroups))
